@@ -1,0 +1,47 @@
+name: Build CS2 DLL
+
+on: [push, workflow_dispatch]
+
+jobs:
+  build:
+    runs-on: windows-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup MSVC
+      uses: microsoft/setup-msbuild@v1.3
+      
+    - name: Clone MinHook
+      run: git clone --depth 1 https://github.com/TsudaKageyu/minhook.git minhook-master
+      
+    - name: Clone ImGui
+      run: git clone --depth 1 https://github.com/ocornut/imgui.git imgui-master
+      
+    - name: Build
+      shell: cmd
+      run: |
+        call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+        cl /EHsc /O2 /MT /LD /W3 /nologo /std:c++17 ^
+          main.cpp ^
+          minhook-master\src\buffer.c ^
+          minhook-master\src\hook.c ^
+          minhook-master\src\trampoline.c ^
+          minhook-master\src\hde\hde64.c ^
+          imgui-master\imgui.cpp ^
+          imgui-master\imgui_draw.cpp ^
+          imgui-master\imgui_tables.cpp ^
+          imgui-master\imgui_widgets.cpp ^
+          imgui-master\backends\imgui_impl_win32.cpp ^
+          imgui-master\backends\imgui_impl_dx11.cpp ^
+          /I"minhook-master\include" ^
+          /I"imgui-master" ^
+          /I"imgui-master\backends" ^
+          /FeCS2Internal.dll ^
+          /link d3d11.lib dxgi.lib kernel32.lib user32.lib /MACHINE:X64 /SUBSYSTEM:WINDOWS /DLL
+          
+    - name: Upload DLL
+      uses: actions/upload-artifact@v3
+      with:
+        name: CS2Internal-DLL
+        path: CS2Internal.dll
